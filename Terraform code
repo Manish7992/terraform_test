@@ -1,0 +1,57 @@
+provider "aws" {
+    region = "us-east-1"
+    profile = "myansibleuser1"
+}
+resource "aws_security_group" "mysg1" {
+  name        = "mysg1"
+  description = "Allow tcp and ssh protocol"
+  vpc_id      = "vpc-8a233cf0"
+ingress {
+    description      = "SSH from VPC"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+}
+ingress {
+    description      = "for loadbalancer"
+    from_port        = 5000
+    to_port          = 5000
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+}
+ingress {
+    description      = "http from VPC"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+}
+egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+}
+ tags = {
+    Name = "mysg1"
+  }
+}
+
+resource "aws_instance" "myweb" {
+ count  = 3
+ ami    = "ami-0aeeebd8d2ab47354"
+ instance_type  = "t2.micro"
+ key_name       = "my_ansible_key"
+ security_groups        =  [aws_security_group.mysg1.name]
+  tags  = {
+    Name        = "myweb"
+ }
+resource "null_resource" "ansible" {
+  provisioner "local-exec" {
+    command  = <<-EOT
+    exec "sleep 200"
+    exec "ansible-playbook /practice/aws_lb/lb_config.yml"
+  EOT
+  }
+}
